@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CliMotion</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        #city {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #suggestions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #weather-container {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>CliMotion</h1>
+
+    <form id="weather-form">
+        <label for="city">Cidade:</label>
+        <input type="text" id="city" required oninput="getCitySuggestions()">
+        <div id="suggestions"></div>
+        <button type="button" onclick="getWeather()">Ver Clima</button>
+    </form>
+
+    <div id="weather-container"></div>
+    
+    <script>
+        const apiKey = "7bde8d118ff8f975c54789c722c511ff";
+
+        function getWeather() {
+            var city = document.getElementById('city').value;
+
+            fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro na solicitação: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    var weatherContainer = document.getElementById('weather-container');
+                    weatherContainer.innerHTML = '';
+
+                    var result = document.createElement('p');
+                    result.textContent = `Temperatura em ${city}: ${(data.main.temp - 273.15).toFixed(1)}°C, ${traduzirDescricao(data.weather[0].description)}`;
+
+                    if (data.rain && data.rain['1h']) {
+                        result.textContent += `, Chance de chuva: ${data.rain['1h']} mm`;
+                    }
+
+                    if (data.main.humidity) {
+                        result.textContent += `, Umidade: ${data.main.humidity}%`;
+                    }
+
+                    if (data.wind && data.wind.speed) {
+                        result.textContent += `, Velocidade do vento: ${data.wind.speed} m/s`;
+                    }
+
+                    weatherContainer.appendChild(result);
+                })
+                .catch(error => {
+                    console.error('Erro ao encontrar clima:', error);
+                    var weatherContainer = document.getElementById('weather-container');
+                    weatherContainer.innerHTML = '<p>Erro ao encontrar clima</p>';
+                });
+        }
+
+        function getCitySuggestions() {
+            var cityInput = document.getElementById('city');
+            var suggestionsContainer = document.getElementById('suggestions');
+
+            // Use Geocoding API to get city suggestions
+            fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${cityInput.value}&limit=5&appid=${apiKey}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestionsContainer.innerHTML = '';
+
+                    data.forEach(city => {
+                        var suggestion = document.createElement('div');
+                        suggestion.textContent = city.name;
+                        suggestion.onclick = function() {
+                            cityInput.value = city.name;
+                            suggestionsContainer.innerHTML = '';
+                        };
+
+                        suggestionsContainer.appendChild(suggestion);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao obter sugestões de cidade:', error);
+                    suggestionsContainer.innerHTML = '';
+                });
+        }
+
+        function traduzirDescricao(descricao) {
+            // Traduzir descrições para o português, se necessário
+            switch (descricao) {
+                case 'Thunderstorm': return 'Trovoadas';
+                case 'Drizzle': return 'Chuvisco';
+                case 'Rain': return 'Chuva';
+                case 'Snow': return 'Neve';
+                case 'clear sky': return 'céu limpo';
+                case 'few clouds': return 'poucas nuvens';
+                case 'scattered clouds': return 'nuvens dispersas';
+                case 'broken clouds': return 'nuvens quebradas';
+                case 'overcast clouds': return 'nublado'
+                case 'shower rain': return 'chuva de chuviscos';
+                case 'rain': return 'chuva';
+                case 'thunderstorm': return 'tempestade';
+                case 'snow': return 'neve';
+                case 'mist': return 'névoa';
+                case 'Clear': return 'Céu Limpo';
+                case 'Clouds': return 'Nublado';
+                default: return descricao;
+            }
+        }
+    </script>
+</body>
+</html>
